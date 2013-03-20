@@ -27,7 +27,13 @@ except ImportError:
             raise ImportError('A json library is required to use this python library. Lol, yay for being verbose. ;)')
 
 
-class LinkedinAPIError(Exception): pass
+class LinkedinAPIError(Exception):
+
+    def __init__(self, status, message):
+        super('Error Code: %d, Message: %s' % (status, message))
+        self.status = status
+        self.message = message
+
 class LinkedinAuthError(LinkedinAPIError): pass
 
 
@@ -43,7 +49,7 @@ class LinkedinAPI(object):
         # Authentication URLs
         self.request_token_url = 'https://api.linkedin.com/uas/oauth/requestToken'
         self.access_token_url = 'https://api.linkedin.com/uas/oauth/accessToken'
-		# Authentication page in http://developer.linkedin.com/documents/authentication states that 
+		# Authentication page in http://developer.linkedin.com/documents/authentication states that
 		# endpoint is the following not the previous url used.
         self.authorize_url = 'https://api.linkedin.com/uas/oauth/authenticate'
 
@@ -107,7 +113,7 @@ class LinkedinAPI(object):
 
         status = int(resp['status'])
         if status != 200:
-            raise LinkedinAuthError('There was a problem authenticating you. Error: %s, Message: %s' % (status, content))
+            raise LinkedinAuthError(status, content)
 
         request_tokens = dict(parse_qsl(content))
 
@@ -150,14 +156,15 @@ class LinkedinAPI(object):
         else:
             resp, content = self.client.request('%s?%s' % (url, urllib.urlencode(params)), 'GET', headers=self.headers)
 
+        status = int(resp['status'])
+
         try:
             content = json.loads(content)
         except json.JSONDecodeError:
-            raise LinkedinAPIError('Content is not valid JSON, unable to be decoded.')
+            raise LinkedinAPIError(status, 'Content is not valid JSON, unable to be decoded.')
 
-        status = int(resp['status'])
         if status < 200 or status >= 300:
-            raise LinkedinAPIError('Error Code: %d, Message: %s' % (status, content['message']))
+            raise LinkedinAPIError(status, content['message'])
 
         return content
 
