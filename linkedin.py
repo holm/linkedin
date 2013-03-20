@@ -30,7 +30,7 @@ except ImportError:
 class LinkedinAPIError(Exception):
 
     def __init__(self, status, message):
-        super('Error Code: %d, Message: %s' % (status, message))
+        super(LinkedinAPIError, self).__init__('Error Code: %d, Message: %s' % (status, message))
         self.status = status
         self.message = message
 
@@ -143,25 +143,21 @@ class LinkedinAPI(object):
         if fields:
             url = '%s:(%s)' % (url, fields)
 
-        if method == 'POST':
-            resp, content = self.client.request(url, 'POST', body=json.dumps(params), headers=self.headers)
-
-            # As far as I've seen, all POSTs return a 201 and NO body -.-
-            # So, we'll just return true if it's a post and returns 201
-
-            # This will catch a successful post, but continue and throw
-            # an error if it wasn't successful.
-            if 'status' in resp and int(resp['status']) == 201:
-                return True
+        if method == "GET":
+            url = '%s?%s' % (url, urllib.urlencode(params))
+            body = None
         else:
-            resp, content = self.client.request('%s?%s' % (url, urllib.urlencode(params)), 'GET', headers=self.headers)
+            body = json.dumps(params)
+
+        resp, content = self.client.request(url, method, body=body, headers=self.headers)
 
         status = int(resp['status'])
 
-        try:
-            content = json.loads(content)
-        except json.JSONDecodeError:
-            raise LinkedinAPIError(status, 'Content is not valid JSON, unable to be decoded.')
+        if content is not None:
+            try:
+                content = json.loads(content)
+            except json.JSONDecodeError:
+                raise LinkedinAPIError(status, 'Content is not valid JSON, unable to be decoded.')
 
         if status < 200 or status >= 300:
             raise LinkedinAPIError(status, content['message'])
