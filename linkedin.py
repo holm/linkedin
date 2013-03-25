@@ -153,7 +153,7 @@ class LinkedinAPI(object):
 
         status = int(resp['status'])
 
-        if content is not None:
+        if content:
             try:
                 content = json.loads(content)
             except json.JSONDecodeError:
